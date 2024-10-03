@@ -4,10 +4,8 @@ import { getStatusBarHeight } from 'react-native-status-bar-height';
 
 export default function({ navigation }) {
     return (
-        <ImageBackground source={require('../assets/Fundo.jpg')} style={styles.container}>
-        <SafeAreaView style={styles.container}>
-            <Text style={styles.text}>Esperando Claudião Fazer</Text>
-        </SafeAreaView>
+        <ImageBackground source={require('../assets/FundoJogos.png')} style={styles.container}>
+
         </ImageBackground>
     );
 }
