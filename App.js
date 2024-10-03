@@ -8,6 +8,13 @@ import Login from './screens/login.js';
 import Calendery from './screens/calendery.js';
 import Profile from './screens/profile.js';
 import AtividadesDiarias from './screens/AtividadesDiarias';
+import ActivitiesPage from './screens/AtividadesRealiadas/ActivitiesPage.js' 
+import FeedbackAtividade from './screens/AtividadesRealiadas/terapiaOcupacional.js'
+import Mensagem from './screens/Mensagem.js'
+
+
+
+
 
 import { Image } from 'react-native';
 
@@ -22,7 +29,7 @@ function MainTabs() {
         headerShown: false,
         tabBarActiveTintColor: 'blue',
         tabBarInactiveTintColor: 'gray',
-        tabBarShowLabel: true,
+        tabBarShowLabel: false,
         tabBarIcon: ({ color, size }) => {
           let iconPath;
           if (route.name === 'Home') {
@@ -32,7 +39,9 @@ function MainTabs() {
           } else if (route.name === 'Calendery') {
             iconPath = require('./assets/Container/Calenderypage.png');
           } else if (route.name === 'Profile') {
-            iconPath = require('./assets/Container/ProfilePage.jpeg');
+            iconPath = require('./assets/Container/Perfil.png');
+          }else if (route.name === 'Mensagem') {
+            iconPath = require('./assets/Container/MensagemHome copy.png');
           }
 
           return <Image source={iconPath} style={{ width: size, height: size, tintColor: color }} />;
@@ -43,6 +52,8 @@ function MainTabs() {
       <Tab.Screen name="Game" component={Game} />
       <Tab.Screen name="Calendery" component={Calendery} />
       <Tab.Screen name="Profile" component={Profile} />
+      <Tab.Screen name="Mensagem" component={Mensagem} />
+
 
     </Tab.Navigator>
   );
@@ -57,6 +68,15 @@ export default function App() {
           component={MainTabs}
           options={{ headerShown: false }}
         />
+        <Stack.Screen name="ATIVIDADES REALIZADAS" 
+        component={ActivitiesPage}           
+        options={{ headerShown: true }}/>
+
+        <Stack.Screen name="Terapia Ocupacional" 
+        component={FeedbackAtividade}           
+        options={{ headerShown: true }}/>
+
+        
         <Stack.Screen
           name="Register"
           component={Register}

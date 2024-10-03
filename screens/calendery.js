@@ -54,7 +54,7 @@ export default function Calendery() {
   const markReminderDates = (reminders) => {
     const marked = {};
     Object.keys(reminders).forEach((date) => {
-      marked[date] = { marked: true, dotColor: 'red' };
+      marked[date] = { marked: true, dotColor: '#ff6347' };
     });
     setMarkedDates(marked);
   };
@@ -105,17 +105,23 @@ export default function Calendery() {
         data={nextSevenDays}
         keyExtractor={(item) => item.date}
         renderItem={({ item }) => (
-          <View style={styles.reminderItem}>
-            <Text style={styles.dayText}>
-              {item.dayOfWeek}, {moment(item.date).format('DD [de] MMMM [de] YYYY')}
-            </Text>
-            {item.reminders.length > 0 ? (
-              item.reminders.map((reminder, index) => (
-                <Text key={index} style={styles.reminderText}>{reminder}</Text>
-              ))
-            ) : (
-              <Text style={styles.noRemindersText}>Sem lembretes</Text>
-            )}
+          <View style={styles.reminderItemNextSevenDaysContainer}>
+            <View style={styles.reminderItemNextSevenDaysHeader}>
+              <Text style={styles.dayText}>
+                {item.dayOfWeek}, {moment(item.date).format('DD [de] MMMM [de] YYYY')}
+              </Text>
+            </View>
+            <View style={styles.reminderItemNextSevenDaysBody}>
+              {item.reminders.length > 0 ? (
+                item.reminders.map((reminder, index) => (
+                  <View key={index} style={styles.reminderCard}>
+                    <Text style={styles.reminderTextNextSevenDays}>{reminder}</Text>
+                  </View>
+                ))
+              ) : (
+                <Text style={styles.noRemindersTextNextSevenDays}>Sem lembretes</Text>
+              )}
+            </View>
           </View>
         )}
       />
@@ -125,28 +131,41 @@ export default function Calendery() {
   return (
     <ImageBackground source={require('../assets/Fundo.jpg')} style={styles.background}>
       <ScrollView contentContainerStyle={styles.scrollContainer}>
-        <StatusBar barStyle="white-content" backgroundColor="#2c67b6" />
+        <StatusBar barStyle="light-content" backgroundColor="#1c4587" />
         <Text style={styles.title}>Calendário de Lembretes</Text>
 
         <Calendar
           onDayPress={(day) => setSelectedDate(day.dateString)}
           markedDates={{
             ...markedDates,
-            [selectedDate]: { selected: true, marked: true, selectedColor: '#6200ee' },
+            [selectedDate]: { selected: true, marked: true, selectedColor: '#00adb5' },
           }}
           style={styles.calendar}
+          theme={{
+            calendarBackground: '#ffffff',
+            selectedDayBackgroundColor: '#00adb5',
+            todayTextColor: '#ff6347',
+            arrowColor: '#00adb5',
+            monthTextColor: '#393e46',
+            textDayFontWeight: 'bold',
+            textMonthFontWeight: 'bold',
+            textDayHeaderFontWeight: 'bold',
+          }}
         />
 
-        <TextInput
-          style={styles.input}
-          placeholder="Adicione seu lembrete"
-          value={reminder}
-          onChangeText={setReminder}
-        />
+        <View style={styles.inputContainer}>
+          <TextInput
+            style={styles.input}
+            placeholder="Adicione seu lembrete"
+            placeholderTextColor="#999"
+            value={reminder}
+            onChangeText={setReminder}
+          />
 
-        <TouchableOpacity style={styles.addButton} onPress={addReminder}>
-          <Text style={styles.addButtonText}>Adicionar Lembrete</Text>
-        </TouchableOpacity>
+          <TouchableOpacity style={styles.addButton} onPress={addReminder}>
+            <Text style={styles.addButtonText}>+</Text>
+          </TouchableOpacity>
+        </View>
 
         <Text style={styles.subtitle}>
           Lembretes para {selectedDate ? moment(selectedDate).format('DD [de] MMMM [de] YYYY') : 'Selecione uma data'}
@@ -156,8 +175,10 @@ export default function Calendery() {
           <FlatList
             data={reminders[selectedDate]}
             renderItem={({ item }) => (
-              <View style={styles.reminderItem}>
-                <Text style={styles.reminderText}>{item}</Text>
+              <View style={styles.reminderItemContainer}>
+                <View style={styles.reminderCard}>
+                  <Text style={styles.reminderText}>{item}</Text>
+                </View>
               </View>
             )}
             keyExtractor={(item, index) => index.toString()}
@@ -180,35 +201,43 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   title: {
-    fontSize: 26,
+    fontSize: 28,
     fontWeight: 'bold',
-    color: '#FFFF',
+    color: '#ffffff',
     marginBottom: 20,
     textAlign: 'center',
   },
   subtitle: {
-    fontSize: 18,
-    color: '#FFFF',
-    marginVertical: 10,
+    fontSize: 20,
+    color: '#ffffff',
+    marginVertical: 15,
   },
-  input: {
-    borderWidth: 1,
-    borderColor: '#ccc',
-    padding: 12,
-    borderRadius: 10,
-    backgroundColor: '#f5f5f5',
-    marginBottom: 20,
-  },
-  addButton: {
-    backgroundColor: '#6200ee',
-    padding: 15,
-    borderRadius: 10,
+  inputContainer: {
+    flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 20,
   },
+  input: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: '#00adb5',
+    padding: 15,
+    borderRadius: 10,
+    backgroundColor: '#ffffff',
+    color: '#333',
+  },
+  addButton: {
+    backgroundColor: '#00adb5',
+    padding: 15,
+    borderRadius: 50,
+    marginLeft: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   addButtonText: {
-    color: '#fff',
+    color: '#ffffff',
     fontWeight: 'bold',
+    fontSize: 24,
   },
   calendar: {
     marginBottom: 20,
@@ -219,19 +248,53 @@ const styles = StyleSheet.create({
   reminderList: {
     marginBottom: 20,
   },
-  reminderItem: {
-    backgroundColor: '#e0e0e0',
-    padding: 15,
-    borderRadius: 10,
+  reminderItemContainer: {
     marginBottom: 10,
   },
+  reminderCard: {
+    backgroundColor: '#ffffff',
+    padding: 15,
+    borderRadius: 10,
+    borderLeftWidth: 5,
+    borderLeftColor: '#00adb5',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+    elevation: 3,
+  },
+  reminderItemNextSevenDaysContainer: {
+    backgroundColor: '#ffffff',
+    borderRadius: 10,
+    marginBottom: 20,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#00adb5',
+  },
+  reminderItemNextSevenDaysHeader: {
+    backgroundColor: '#00adb5',
+    padding: 10,
+  },
+  reminderItemNextSevenDaysBody: {
+    padding: 15,
+  },
   dayText: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: 'bold',
+    color: '#ffffff',
+    textAlign: 'center',
+  },
+  reminderTextNextSevenDays: {
+    fontSize: 16,
     color: '#333',
+    marginBottom: 5,
+  },
+  noRemindersTextNextSevenDays: {
+    fontStyle: 'italic',
+    color: '#999',
   },
   reminderText: {
-    fontSize: 14,
+    fontSize: 16,
     color: '#555',
   },
   noRemindersText: {

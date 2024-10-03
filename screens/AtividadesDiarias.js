@@ -1,155 +1,182 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, FlatList, ImageBackground } from 'react-native';
+import React, { useState, useCallback, useEffect } from 'react';
+import { View, Text, TouchableOpacity, FlatList, StyleSheet } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import moment from 'moment';
 
-const AtividadesDiarias = () => {
-  const [activities, setActivities] = useState([]);
-  const [userEmail, setUserEmail] = useState('');
+const HomeScreen = () => {
+  const [selectedEmoji, setSelectedEmoji] = useState({}); // Estado para armazenar o emoji selecionado por atividade
+  const [anotacoesHoje, setAnotacoesHoje] = useState([]); // Estado para armazenar as anotações do dia
+  const [realizado, setRealizado] = useState({}); // Estado para armazenar se a atividade foi realizada
+  const navigation = useNavigation(); // Navegação
 
-  useEffect(() => {
-    const getUserEmail = async () => {
+  const emojis = ['😃', '😐', '☹️', '😡']; // Emojis de reação
+
+  // Função para selecionar emoji para uma atividade específica
+  const selectEmoji = (id, emoji) => {
+    const newSelectedEmoji = { ...selectedEmoji, [id]: emoji };
+    setSelectedEmoji(newSelectedEmoji);
+    saveEmojiToStorage(id, emoji);
+  };
+
+  // Função para selecionar se a atividade foi realizada
+  const selectRealizado = (id, status) => {
+    const newRealizado = { ...realizado, [id]: status };
+    setRealizado(newRealizado);
+    saveRealizadoToStorage(id, status);
+  };
+
+  // Carregar as anotações do AsyncStorage
+  const recarregaInformacao = async () => {
+    try {
       const accountData = await AsyncStorage.getItem('contaUtilizada');
       const account = JSON.parse(accountData);
-      if (account) {
-        setUserEmail(account.Email);
-        await loadActivities(account.Email);
-      }
-    };
-    getUserEmail();
-  }, []);
+      const email = account.Email;
+      const storedReminders = await AsyncStorage.getItem(`reminders_${email}`);
 
-  const loadActivities = async (email) => {
-    try {
-      const storedActivities = await AsyncStorage.getItem(`activities_${email}`);
-      if (storedActivities) {
-        const parsedActivities = JSON.parse(storedActivities);
-        const todayDate = moment().format('YYYY-MM-DD');
-        setActivities(parsedActivities[todayDate] || []);
+      if (storedReminders) {
+        const parsedReminders = JSON.parse(storedReminders);
+        dataAtual(parsedReminders);
       }
     } catch (error) {
-      console.error('Erro ao carregar atividades:', error);
+      console.error('Erro ao carregar lembretes:', error);
     }
   };
 
-  const handleReaction = async (activityId, reaction) => {
-    const updatedActivities = activities.map(activity => {
-      if (activity.id === activityId) {
-        return { ...activity, reaction };
-      }
-      return activity;
-    });
-
-    await saveActivities(updatedActivities);
-  };
-
-  const handleMarkAsDone = async (activityId) => {
-    const updatedActivities = activities.map(activity => {
-      if (activity.id === activityId) {
-        return { ...activity, done: !activity.done };
-      }
-      return activity;
-    });
-
-    await saveActivities(updatedActivities);
-  };
-
-  const saveActivities = async (updatedActivities) => {
-    const todayDate = moment().format('YYYY-MM-DD');
+  // Função para salvar o emoji no AsyncStorage
+  const saveEmojiToStorage = async (id, emoji) => {
     try {
-      const storedActivities = await AsyncStorage.getItem(`activities_${userEmail}`);
-      const parsedActivities = storedActivities ? JSON.parse(storedActivities) : {};
-      parsedActivities[todayDate] = updatedActivities;
-      await AsyncStorage.setItem(`activities_${userEmail}`, JSON.stringify(parsedActivities));
-      setActivities(updatedActivities);
+      await AsyncStorage.setItem(`emoji_${id}`, emoji);
     } catch (error) {
-      console.error('Erro ao salvar atividades:', error);
+      console.error('Erro ao salvar emoji:', error);
     }
   };
 
+  // Função para salvar se a atividade foi realizada no AsyncStorage
+  const saveRealizadoToStorage = async (id, status) => {
+    try {
+      await AsyncStorage.setItem(`realizado_${id}`, status ? 'sim' : 'não');
+    } catch (error) {
+      console.error('Erro ao salvar realizado:', error);
+    }
+  };
+
+  // Carregar os estados de emoji e realizado do AsyncStorage
+  const loadFromStorage = async () => {
+    try {
+      const keys = await AsyncStorage.getAllKeys();
+      const result = await AsyncStorage.multiGet(keys);
+
+      const emojiState = {};
+      const realizadoState = {};
+
+      result.forEach(([key, value]) => {
+        if (key.startsWith('emoji_')) {
+          const id = key.replace('emoji_', '');
+          emojiState[id] = value;
+        } else if (key.startsWith('realizado_')) {
+          const id = key.replace('realizado_', '');
+          realizadoState[id] = value === 'sim';
+        }
+      });
+
+      setSelectedEmoji(emojiState);
+      setRealizado(realizadoState);
+    } catch (error) {
+      console.error('Erro ao carregar dados do AsyncStorage:', error);
+    }
+  };
+
+  // Função para atualizar os lembretes de hoje
+  const dataAtual = (todasAnotacoes) => {
+    const today = moment().format('YYYY-MM-DD');
+    const todayRemindersList = todasAnotacoes[today] || [];
+    setAnotacoesHoje(todayRemindersList);
+  };
+
+  // Carregar as informações ao focar na tela
+  useFocusEffect(
+    useCallback(() => {
+      recarregaInformacao();
+      loadFromStorage();
+      return () => {};
+    }, [])
+  );
+
+  // Renderização da interface
   const renderItem = ({ item }) => (
-    <View style={styles.activityContainer}>
-      <Text style={styles.activityTitle}>{item.title}</Text>
-      <Text style={styles.activityStatus}>A atividade foi realizada?</Text>
-      <View style={styles.reactionContainer}>
-        <TouchableOpacity onPress={() => handleMarkAsDone(item.id)}>
-          <Text style={item.done ? styles.doneButton : styles.notDoneButton}>
-            {item.done ? '✅' : '❌'} Marcar como {item.done ? 'Não Feita' : 'Feita'}
-          </Text>
+    <View style={styles.itemContainer}>
+      <Text style={styles.text}>{item.title}</Text>
+
+      <View style={styles.checkboxContainer}>
+        <TouchableOpacity onPress={() => selectRealizado(item.id, true)}>
+          <Text style={[styles.checkbox, realizado[item.id] ? styles.checked : null]}>Sim</Text>
         </TouchableOpacity>
-        <View style={styles.emojisContainer}>
-          {['😃', '😐', '☹️', '😡'].map((emoji, index) => (
-            <TouchableOpacity key={index} onPress={() => handleReaction(item.id, emoji)}>
-              <Text style={styles.emoji}>{emoji}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+        <TouchableOpacity onPress={() => selectRealizado(item.id, false)}>
+          <Text style={[styles.checkbox, !realizado[item.id] ? styles.checked : null]}>Não</Text>
+        </TouchableOpacity>
       </View>
-      {item.reaction && (
-        <Text style={styles.selectedReaction}>Reação: {item.reaction}</Text>
-      )}
+
+      <View style={styles.emojiContainer}>
+        {emojis.map((emoji) => (
+          <TouchableOpacity key={emoji} onPress={() => selectEmoji(item.id, emoji)}>
+            <Text style={selectedEmoji[item.id] === emoji ? styles.selectedEmoji : styles.emoji}>{emoji}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
     </View>
   );
 
   return (
-    <ImageBackground source={require('../assets/Fundo.jpg')} style={styles.background}>
+    <View style={styles.container}>
       <FlatList
-        data={activities}
+        data={anotacoesHoje}
         renderItem={renderItem}
-        keyExtractor={item => item.id.toString()}
-        contentContainerStyle={styles.listContainer}
+        keyExtractor={(item) => item.id.toString()}
       />
-    </ImageBackground>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  background: {
+  container: {
     flex: 1,
-    padding: 20,
+    padding: 16,
   },
-  listContainer: {
-    paddingBottom: 20,
+  itemContainer: {
+    marginBottom: 20,
   },
-  activityContainer: {
-    backgroundColor: '#e0e0e0',
-    padding: 15,
-    borderRadius: 10,
+  text: {
+    fontSize: 18,
     marginBottom: 10,
   },
-  activityTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
+  checkboxContainer: {
+    flexDirection: 'row',
+    marginBottom: 10,
   },
-  activityStatus: {
-    fontSize: 14,
-    marginVertical: 5,
+  checkbox: {
+    marginRight: 10,
+    padding: 10,
+    borderWidth: 1,
+    borderRadius: 5,
   },
-  reactionContainer: {
-    flexDirection: 'column',
-    alignItems: 'flex-start',
+  checked: {
+    backgroundColor: 'green',
+    color: 'white',
   },
-  doneButton: {
-    color: 'green',
-    fontWeight: 'bold',
-  },
-  notDoneButton: {
-    color: 'red',
-    fontWeight: 'bold',
-  },
-  emojisContainer: {
+  emojiContainer: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    marginVertical: 10,
   },
   emoji: {
-    fontSize: 30,
+    fontSize: 24,
   },
-  selectedReaction: {
-    marginTop: 5,
-    fontStyle: 'italic',
-    color: '#555',
+  selectedEmoji: {
+    fontSize: 24,
+    borderColor: 'blue',
+    borderWidth: 2,
+    borderRadius: 5,
   },
 });
 
-export default AtividadesDiarias;
+export default HomeScreen;
